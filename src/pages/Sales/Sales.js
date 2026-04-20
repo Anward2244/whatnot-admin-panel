@@ -1,0 +1,524 @@
+import React, { useState, useEffect } from "react"
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Input,
+  Button,
+  Table,
+  Modal,
+  Form,
+  Label,
+} from "reactstrap"
+import Breadcrumbs from "../../components/Common/Breadcrumb"
+import axios from "axios"
+import ReactPaginate from "react-paginate"
+import { ToastContainer, toast } from "react-toastify"
+import { URLS } from "../../Url"
+import gig from "../../assets/images/what.gif"
+import mark from "../../assets/images/mark1.gif"
+import { saveAs } from "file-saver"
+import Trash from "../../assets/images/trash.gif"
+
+function Ventures() {
+  const [Actin, setActin] = useState([])
+
+  const [isLoading, setIsLoading] = useState(false)
+
+  var gets = localStorage.getItem("authUser")
+  var data = JSON.parse(gets)
+  var datas = data.token
+  const [listPerPage] = useState(5)
+  const [pageNumber, setPageNumber] = useState(0)
+
+  useEffect(() => {
+    GetAtps()
+    datass()
+  }, [])
+
+  const GetAtps = () => {
+    var token = datas
+    axios
+      .post(
+        URLS.GetAllSales,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      .then(res => {
+        setActin(res.data.data)
+        setIsLoading(false)
+      })
+  }
+
+  const pagesVisited = pageNumber * listPerPage
+  const lists = Actin.slice(pagesVisited, pagesVisited + listPerPage)
+  const pageCount = Math.ceil(Actin.length / listPerPage)
+  const changePage = ({ selected }) => {
+    setPageNumber(selected)
+  }
+
+  const datass = () => {
+    const location = sessionStorage.getItem("tost")
+    if (location != "") {
+      toast(location)
+      sessionStorage.clear()
+    } else {
+      sessionStorage.clear()
+    }
+  }
+
+  var gets = localStorage.getItem("authUser")
+  var data = JSON.parse(gets)
+
+  const [modal_small2, setmodal_small2] = useState(false)
+
+  const [form, setform] = useState([])
+
+  function tog_small2(data) {
+    setmodal_small2(!modal_small2)
+    setform(data)
+  }
+
+  const Approved = () => {
+    var token = datas
+    var remid = { promoterId: form.promoterId, saleId: form._id }
+
+    axios
+      .post(URLS.ApprovedSales, remid, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(
+        res => {
+          if (res.status === 200) {
+            toast(res.data.message)
+            setmodal_small2(false)
+            GetAtps()
+          }
+        },
+        error => {
+          if (error.response && error.response.status === 400) {
+            toast(error.response.data.message)
+          }
+        }
+      )
+  }
+
+  const [search, setsearch] = useState([])
+
+  const searchAll = e => {
+    let myUser = { ...search }
+    myUser[e.target.name] = e.target.value
+    setsearch(myUser)
+
+    var token = datas
+    axios
+      .post(
+        URLS.GetAllSalesSearch + `${e.target.value}`,
+        {},
+
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      .then(res => {
+        setActin(res.data.data)
+      })
+  }
+
+  const downloadImage = data => {
+    saveAs(URLS.Base + data.invoicePath)
+  }
+
+  const [modal_small1, setmodal_small1] = useState(false)
+
+  const [form2, setform2] = useState([])
+
+  const [form3, setform3] = useState([])
+
+  const handleChange1 = e => {
+    const myUser = { ...form2 }
+    myUser[e.target.name] = e.target.value
+    setform2(myUser)
+  }
+
+  function tog_small1(data) {
+    setmodal_small1(!modal_small1)
+    setform3(data)
+  }
+
+  const handleSubmit = e => {
+    e.preventDefault()
+    Reject()
+  }
+
+  const Reject = () => {
+    var token = datas
+    var remid = {
+      reason: form2.reason,
+      promoterId: form3.promoterId,
+      saleId: form3._id,
+    }
+
+    axios
+      .post(URLS.RejectSales, remid, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(
+        res => {
+          if (res.status === 200) {
+            toast(res.data.message)
+            setmodal_small1(false)
+            GetAtps()
+            setform2({
+              reason: "",
+            })
+          }
+        },
+        error => {
+          if (error.response && error.response.status === 400) {
+            toast(error.response.data.message)
+          }
+        }
+      )
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-content">
+        <div className="container-fluid">
+          <Breadcrumbs title="Whatnot" breadcrumbItem="Sales list" />
+
+          <Row>
+            <Col>
+              <Card>
+                {isLoading == true ? (
+                  <>
+                    <div
+                      style={{ zIndex: "9999999999999", height: "420px" }}
+                      className="text-center mt-5 pt-5"
+                    >
+                      <img src={gig} height="140px"></img>
+                      <div>Loading......</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <CardBody>
+                      <div className="table-rep-plugin mt-4 table-responsive">
+                        <div style={{ float: "right" }}>
+                          <Input
+                            type="search"
+                            className="form-control mb-4"
+                            placeholder="Search.."
+                            value={search.search}
+                            onChange={searchAll}
+                            name="search"
+                          />
+                        </div>
+                        <Table hover className="table table-bordered mb-4">
+                          <thead>
+                            <tr className="text-center">
+                              <th>SlNo</th>
+                              <th>Date</th>
+                              <th>Store Name</th>
+                              <th>Promoter Image</th>
+                              <th>Promoter Name</th>
+                              <th>Promoter Number</th>
+                              <th>Promoter Email</th>
+                              <th>Brand Name</th>
+                              <th>Category Name</th>
+                              <th>Product Name</th>
+                              <th>Price</th>
+                              <th>Selling Price</th>
+                              <th>Serial Number</th>
+                              <th>Incentive</th>
+                              <th>Invoice</th>
+                              <th>Price Miss Match</th>
+                              <th>Reject Reason</th>
+                              <th>Status</th>
+                              <th>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {lists.map((data, key) => (
+                              <tr key={key} className="text-center">
+                                <td>{(pageNumber - 1) * 5 + key + 6}</td>
+                                <td>{data.saleDate.slice(0, 10)}</td>
+                                <td>{data.promoter.storeName}</td>
+                                <td>
+                                  <img
+                                    src={URLS.Base + data.promoter.profilePic}
+                                    alt=""
+                                    className=" rounded-circle"
+                                    style={{ height: "50px", width: "50px" }}
+                                  />
+                                </td>
+                                <td>{data.promoter.name}</td>
+                                <td>{data.promoter.phone}</td>
+                                <td>{data.promoter.email}</td>
+                                <td>{data.brandName}</td>
+                                <td>{data.categoryName}</td>
+                                <td>{data.productName}</td>
+                                <td>{data.price}</td>
+                                <td>{data.sellingPrice}</td>
+                                <td>{data.serialNumber}</td>
+                                <td>{data.incentive}</td>
+                                <td>
+                                  <Button
+                                    outline
+                                    onClick={() => {
+                                      downloadImage(data)
+                                    }}
+                                    className="mb-1 m-1 "
+                                    style={{ float: "right" }}
+                                    color="danger"
+                                  >
+                                    <i
+                                      className="fas fa-cloud-download-alt"
+                                      aria-hidden="true"
+                                    ></i>
+                                  </Button>
+                                </td>
+                                <td>
+                                  <a
+                                    href={
+                                      URLS.Base + data.priceMatchScreenshotPath
+                                    }
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    <img
+                                      src={
+                                        URLS.Base +
+                                        data.priceMatchScreenshotPath
+                                      }
+                                      height="100px"
+                                    ></img>
+                                  </a>
+                                </td>
+                                <td>
+                                  {data.reason == "" ? (
+                                    <>-</>
+                                  ) : (
+                                    <>{data.reason}</>
+                                  )}
+                                </td>
+                                <td>
+                                  {data.status == "approved" ? (
+                                    <>
+                                      <span className="badge bg-success ">
+                                        {data.status}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="badge bg-danger ">
+                                        {data.status}
+                                      </span>
+                                    </>
+                                  )}
+                                </td>
+                                <td>
+                                  {data.status == "approved" ||
+                                  data.status == "rejected" ? (
+                                    "-"
+                                  ) : (
+                                    <Button
+                                      onClick={() => {
+                                        tog_small2(data)
+                                      }}
+                                      size="sm"
+                                      className="m-1"
+                                      outline
+                                      color="success"
+                                    >
+                                      <i
+                                        style={{ fontSize: " 14px" }}
+                                        className="fas fa-user-check"
+                                      ></i>
+                                    </Button>
+                                  )}
+                                  {data.status == "approved" ||
+                                  data.status == "rejected" ? (
+                                    ""
+                                  ) : (
+                                    <Button
+                                      onClick={() => {
+                                        tog_small1(data)
+                                      }}
+                                      size="sm"
+                                      className="m-1"
+                                      outline
+                                      color="danger"
+                                    >
+                                      <i
+                                        style={{ fontSize: " 14px" }}
+                                        className="bx bxs-x-square"
+                                      ></i>
+                                    </Button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                        <div
+                          className="d-flex mt-3 mb-1"
+                          style={{ float: "right" }}
+                        >
+                          <ReactPaginate
+                            previousLabel={"Previous"}
+                            nextLabel={"Next"}
+                            pageCount={pageCount}
+                            onPageChange={changePage}
+                            containerClassName={"pagination"}
+                            previousLinkClassName={"previousBttn"}
+                            nextLinkClassName={"nextBttn"}
+                            disabledClassName={"disabled"}
+                            activeClassName={"active"}
+                            total={lists.length}
+                          />
+                        </div>
+                      </div>
+                    </CardBody>
+                  </>
+                )}
+              </Card>
+            </Col>
+          </Row>
+          <Modal
+            size="md"
+            isOpen={modal_small2}
+            toggle={() => {
+              tog_small2()
+            }}
+            centered
+          >
+            {" "}
+            <div className="modal-header">
+              <h5 className="modal-title mt-0" id="mySmallModalLabel">
+                Approved
+              </h5>
+              <button
+                onClick={() => {
+                  setmodal_small2(false)
+                }}
+                type="button"
+                className="close"
+                data-dismiss="modal"
+                aria-label="Close"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <Col md={12}>
+                <img src={mark} width="100%"></img>
+              </Col>
+
+              <div style={{ float: "right" }}>
+                <Button
+                  onClick={() => {
+                    setmodal_small2(false)
+                  }}
+                  color="danger"
+                  type="button"
+                >
+                  Cancel <i className="fas fa-times-circle"></i>
+                </Button>
+                <Button
+                  className="m-1"
+                  color="primary"
+                  onClick={() => {
+                    Approved()
+                  }}
+                >
+                  Submit <i className="fas fa-check-circle"></i>
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal
+            size="md"
+            isOpen={modal_small1}
+            toggle={() => {
+              tog_small1()
+            }}
+            centered
+          >
+            <div className="modal-header">
+              <h5 className="modal-title mt-0" id="mySmallModalLabel">
+                Reject
+              </h5>
+              <button
+                onClick={() => {
+                  setmodal_small1(false)
+                }}
+                type="button"
+                className="close"
+                data-dismiss="modal"
+                aria-label="Close"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <Form
+                onSubmit={e => {
+                  handleSubmit(e)
+                }}
+              >
+                <Col md={12}>
+                  <img src={Trash} width="100%"></img>
+                </Col>
+
+                <Col md={12}>
+                  <div className="mb-3">
+                    <Label for="basicpill-firstname-input1">
+                      Reason <span className="text-danger">*</span>
+                    </Label>
+                    <textarea
+                      type="text"
+                      rows="3"
+                      className="form-control "
+                      id="basicpill-firstname-input1"
+                      placeholder="Enter Reason"
+                      required
+                      value={form2.reason}
+                      name="reason"
+                      onChange={e => {
+                        handleChange1(e)
+                      }}
+                    />
+                  </div>
+                </Col>
+
+                <div style={{ float: "right" }}>
+                  <Button
+                    onClick={() => {
+                      setmodal_small1(false)
+                    }}
+                    color="danger"
+                    type="button"
+                  >
+                    Cancel <i className="fas fa-times-circle"></i>
+                  </Button>
+                  <Button className="m-1" color="primary" type="submit">
+                    Submit <i className="fas fa-check-circle"></i>
+                  </Button>
+                </div>
+              </Form>
+            </div>
+          </Modal>
+          <ToastContainer />
+        </div>
+      </div>
+    </React.Fragment>
+  )
+}
+
+export default Ventures

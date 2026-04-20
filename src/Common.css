@@ -1,0 +1,43 @@
+
+/* paginations... */
+
+.pagination > li {
+    display: inline-block;
+    padding-left: 0;
+  }
+  .pagination > li {
+    list-style: none;
+  }
+  .pagination > li > a,
+  .pagination > li > span {
+    position: relative;
+    float: left;
+    padding: 6px 12px;
+    line-height: 1.42857143;
+    text-decoration: none;
+    /* color: white; */
+    /* background:#7ea2af ; */
+  }
+  
+  .pagination > li.active > a {
+    color: #fff;
+    background-color: rgb(0 , 0 , 0);
+    border-color: #fff;
+  }
+  h5.user-title.m-2:hover {
+    color: #dfdfdf;
+  }
+  h5.user-title.m-2:active {
+    color: #fff;
+  }
+  h5.user-title.m-2.mm-active {
+    color: #fff !important;
+  }
+  .actives{
+    color: #fff !important;
+  }
+  .logocss{
+    font-size: 18px;
+    font-weight: 800;
+    color: #cd3131;
+  }
