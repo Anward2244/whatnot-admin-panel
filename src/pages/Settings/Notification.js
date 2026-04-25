@@ -42,6 +42,10 @@ const Notifications = () => {
     let myUser = { ...form }
     myUser[e.target.name] = e.target.value
     setform(myUser)
+
+    if (e.target.name === "userList") {
+      setselectedMulti([])
+    }
   }
 
   const getMentionToken = title => {
@@ -168,7 +172,11 @@ const Notifications = () => {
   const [selectedMulti, setselectedMulti] = useState([])
 
   function handleMulti(data) {
-    setselectedMulti(data)
+    if (Array.isArray(data)) {
+      setselectedMulti(data)
+    } else {
+      setselectedMulti(data ? [data] : [])
+    }
   }
 
   const options = customer.map(data => ({
@@ -250,6 +258,38 @@ const Notifications = () => {
             }
           }
         )
+      return
+    }
+
+    // If multiple selected employees and the title contains an @mention for personalization
+    if (form.userList === "SELECTED_EMPLOYEES" && selectedMulti.length > 1 && /@\S+/i.test(title)) {
+      const requests = selectedMulti.map(user => {
+        const personalizedTitle = personalizeTitleForUser(title, user.label)
+        return axios.post(
+          URLS.AddNotifications,
+          {
+            title: personalizedTitle,
+            userList: [user],
+            description,
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+      })
+
+      Promise.all(requests)
+        .then(() => {
+          toast("Notifications sent to selected employees.")
+          setIsLoading(true)
+          getNotifications()
+          clearForm()
+          setselectedMulti([])
+          setShowTitleSuggestions(false)
+        })
+        .catch(error => {
+          toast("Failed to send some personalized notifications.")
+        })
       return
     }
 
@@ -440,19 +480,20 @@ const Notifications = () => {
                         <option value="">Select</option>
                         <option value="All">All Employee's</option>
                         <option value="USER">Single Employee</option>
+                        <option value="SELECTED_EMPLOYEES">Selected Employees</option>
                       </select>
                     </div>
 
-                    {form.userList == "USER" ? (
+                    {form.userList === "USER" || form.userList === "SELECTED_EMPLOYEES" ? (
                       <div className="mt-3">
-                        <Label>Employee</Label>
+                        <Label>{form.userList === "USER" ? "Employee" : "Employees"}</Label>
                         <span className="text-danger">*</span>
                         <Select
-                          value={selectedMulti}
+                          value={form.userList === "USER" ? (selectedMulti[0] || null) : selectedMulti}
                           onChange={handleMulti}
                           options={options}
                           required
-                          isMulti
+                          isMulti={form.userList === "SELECTED_EMPLOYEES"}
                         />
                       </div>
                     ) : (
