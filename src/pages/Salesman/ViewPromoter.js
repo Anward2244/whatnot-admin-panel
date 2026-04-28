@@ -85,6 +85,8 @@ function State() {
       })
   }
 
+  console.log(forms)
+
   const [listPerPage] = useState(5)
   const [pageNumber, setPageNumber] = useState(0)
 

@@ -51,8 +51,11 @@ function Ventures() {
         setActin(res.data.data)
         setIsLoading(false)
       })
+      
   }
 
+  console.log(Actin)
+  
   const pagesVisited = pageNumber * listPerPage
   const lists = Actin.slice(pagesVisited, pagesVisited + listPerPage)
   const pageCount = Math.ceil(Actin.length / listPerPage)

@@ -12,10 +12,19 @@ const Dashboard = () => {
   const [allPromoters, setAllPromoters] = useState([])
   const [allSales, setAllSales] = useState([])
   const [selectedMetric, setSelectedMetric] = useState("sales")
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
+
+  const monthsList = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ]
+
+  const years = Array.from(new Array(5), (val, index) => new Date().getFullYear() - index)
 
   useEffect(() => {
     GetSettings()
-  }, [])
+  }, [selectedYear])
 
   var gets = localStorage.getItem("authUser")
   var data = JSON.parse(gets)
@@ -27,7 +36,7 @@ const Dashboard = () => {
     axios
       .post(
         URLS.GetDashboad,
-        {},
+        { year: selectedYear },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -45,7 +54,7 @@ const Dashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       )
       .then(res => {
-        setAllPromoters(res.data.data || res.data || [])
+        setAllPromoters(res.data.promoters || res.data.data || res.data || [])
       })
 
     // Fetch all sales to calculate the metric counts
@@ -59,7 +68,7 @@ const Dashboard = () => {
         setAllSales(res.data.data || res.data || [])
       })
   }
-  console.log(Promoters)
+  console.log(allSales)
 
   const reports = [
     {
@@ -83,27 +92,6 @@ const Dashboard = () => {
       description: form.totalIncentives,
     },
   ]
-
-  // Pie charts take a single-dimensional array for data. 
-  // Here we display the monthly sales data.
-  const totalsSeries = [
-    form.promotersCount || 0,
-    form.salesCount || 0,
-    form.totalProducts || 0,
-    form.totalIncentives || 0,
-  ]
-
-  const totalsOptions = {
-    chart: { type: "pie" },
-    labels: [
-      "Total Employees",
-      "Total Sales",
-      "Total Products",
-      "Total Incentive Amount",
-    ],
-    colors: ["#556ee6", "#34c38f", "#f1b44c", "#f46a6a"], // Primary, Success, Warning, Danger
-    legend: { position: "bottom" },
-  }
 
   const monthlySalesSeries = form.saleStats || []
   const monthlyEmployeesSeries = form.promoterStats || []
@@ -230,6 +218,41 @@ const Dashboard = () => {
   // Check if we have actual data to display
   const hasDonutData = storeSalesSeries.length > 0;
 
+  // Calculate promoter sales for the selected month and year
+  const monthlyPromoterSales = allPromoters.map(promoter => {
+    const promoterSales = allSales.filter(sale => {
+      const pId = sale.promoterId || sale.promoter_id || (sale.promoter && sale.promoter._id);
+      const dateStr = sale.saleDate || sale.createdAt || sale.created_at || sale.date;
+      if (!dateStr) return false;
+      const saleDateObj = new Date(dateStr);
+      return pId === promoter._id &&
+             sale.status === "approved" &&
+             saleDateObj.getFullYear() === parseInt(selectedYear) &&
+             saleDateObj.getMonth() === parseInt(selectedMonth);
+    });
+    return {
+      ...promoter,
+      salesCountInMonth: promoterSales.length,
+      totalValueInMonth: promoterSales.reduce((acc, curr) => acc + (Number(curr.sellingPrice) || Number(curr.price) || 0), 0),
+      totalIncentivesInMonth: promoterSales.reduce((acc, curr) => acc + (Number(curr.incentive) || 0), 0)
+    };
+  }).filter(p => p.salesCountInMonth > 0).sort((a, b) => b.salesCountInMonth - a.salesCountInMonth);
+
+  // Get the latest employees filtered by month
+  const latestEmployees = [...allPromoters]
+    .filter(promoter => {
+      const dateStr = promoter.logCreatedDate || promoter.createdAt || promoter.created_at || promoter.date;
+      if (!dateStr) return false;
+      const joinDateObj = new Date(dateStr);
+      return joinDateObj.getFullYear() === parseInt(selectedYear) &&
+             joinDateObj.getMonth() === parseInt(selectedMonth);
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.logCreateDate || a.createdAt || a.created_at || a.date || 0).getTime();
+      const dateB = new Date(b.logCreateDate || b.createdAt || b.created_at || b.date || 0).getTime();
+      return dateB - dateA;
+    });
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -270,19 +293,6 @@ const Dashboard = () => {
                 <Col md="4">
                   <Card className="overflow-hidden">
                     <CardBody>
-                      <h4 className="card-title mb-4">Overall Totals</h4>
-                      <ReactApexChart
-                        options={totalsOptions}
-                        series={totalsSeries}
-                        type="pie"
-                        height={350}
-                      />
-                    </CardBody>
-                  </Card>
-                </Col>
-                <Col md="4">
-                  <Card className="overflow-hidden">
-                    <CardBody>
                       <h4 className="card-title mb-4">Monthly Sales</h4>
                       <ReactApexChart
                         options={monthlyOptions}
@@ -293,6 +303,70 @@ const Dashboard = () => {
                     </CardBody>
                   </Card>
                 </Col>
+                <Col md="8">
+                  <Card className="overflow-hidden">
+                    <CardBody>
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h4 className="card-title mb-0">Monthly Sales Details</h4>
+                        <div className="d-flex">
+                          <select
+                            className="form-select form-select-sm me-2"
+                            style={{ width: "120px" }}
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                          >
+                            {monthsList.map((month, index) => (
+                              <option key={index} value={index}>{month}</option>
+                            ))}
+                          </select>
+                          <select
+                            className="form-select form-select-sm"
+                            style={{ width: "90px" }}
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                          >
+                            {years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="table-responsive" style={{ maxHeight: "350px", overflowY: "auto" }}>
+                        <Table hover bordered className="mb-0">
+                          <thead className="table-light">
+                            <tr>
+                              <th>S.No</th>
+                              <th>Employee Name</th>
+                              <th>Store Name</th>
+                              <th>Sales</th>
+                              <th>Value</th>
+                              <th>Total Incentives</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {monthlyPromoterSales.length > 0 ? monthlyPromoterSales.map((promoter, index) => (
+                              <tr key={index}>
+                                <td>{index + 1}</td>
+                                <td>{promoter.name || "-"}</td>
+                                <td>{promoter.storeName || "-"}</td>
+                                <td>{promoter.salesCountInMonth}</td>
+                                <td>₹{promoter.totalValueInMonth}</td>
+                                <td>₹{promoter.totalIncentivesInMonth}</td>
+                              </tr>
+                            )) : (
+                              <tr>
+                                <td colSpan="6" className="text-center text-muted py-3">No sales found for this month</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </Table>
+                      </div>
+                    </CardBody>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Row>
                 <Col md="4">
                   <Card className="overflow-hidden">
                     <CardBody>
@@ -303,6 +377,73 @@ const Dashboard = () => {
                         type="pie"
                         height={350}
                       />
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md="8">
+                  <Card className="overflow-hidden">
+                    <CardBody>
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h4 className="card-title mb-0">Latest Employees</h4>
+                        <div className="d-flex">
+                          <select
+                            className="form-select form-select-sm me-2"
+                            style={{ width: "120px" }}
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                          >
+                            {monthsList.map((month, index) => (
+                              <option key={index} value={index}>{month}</option>
+                            ))}
+                          </select>
+                          <select
+                            className="form-select form-select-sm"
+                            style={{ width: "90px" }}
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                          >
+                            {years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="table-responsive" style={{ maxHeight: "350px", overflowY: "auto" }}>
+                        <Table hover bordered className="mb-0">
+                          <thead className="table-light">
+                            <tr>
+                              <th>S.No</th>
+                              <th>Employee Name</th>
+                              <th>Store Name</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {latestEmployees.length > 0 ? latestEmployees.map((promoter, index) => (
+                              <tr key={index}>
+                                <td>{index + 1}</td>
+                                <td>{promoter.name || "-"}</td>
+                                <td>{promoter.storeName || "-"}</td>
+                                <td>
+                                  {promoter.kyc == "not uploaded" ? (
+                                    <span className="badge bg-dark">Kyc Not Updated</span>
+                                  ) : (
+                                    <>
+                                      {promoter.kycStatus === "approved" && <span className="badge bg-success">{promoter.kycStatus}</span>}
+                                      {promoter.kycStatus === "pending" && <span className="badge bg-warning">{promoter.kycStatus}</span>}
+                                      {promoter.kycStatus === "rejected" && <span className="badge bg-danger">{promoter.kycStatus}</span>}
+                                    </>
+                                  )}
+                                </td>
+                              </tr>
+                            )) : (
+                              <tr>
+                                <td colSpan="4" className="text-center text-muted py-3">No recent employees found</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </Table>
+                      </div>
                     </CardBody>
                   </Card>
                 </Col>
@@ -363,90 +504,6 @@ const Dashboard = () => {
                   </Card>
                 </Col>
               </Row>
-            </Col>
-          </Row>
-          <Row>
-            <Col lg="12">
-              <div>
-                <Card>
-                  <CardBody>
-                    <h5 className="mb-3">Latest Employees</h5>
-                    <div className="table-rep-plugin ">
-                      <Table hover bordered responsive>
-                        <thead className="bg-light ">
-                          <tr className="text-center">
-                            <th>Sl No</th>
-                            <th>Employee Image</th>
-                            <th>Employee Store Name</th>
-                            <th>Employee Name</th>
-                            <th>Employee Number</th>
-                            <th>Employee Email </th>
-                            <th>Employee Status </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Promoters.map((data, i) => (
-                            <tr key={i} className=" text-center">
-                              <th>{i + 1}</th>
-                              <td>
-                                <img
-                                  src={URLS.Base + data.profilePic}
-                                  alt=""
-                                  className=" rounded-circle"
-                                  style={{ height: "50px", width: "50px" }}
-                                />
-                              </td>
-                              <td>{data.storeName}</td>
-                              <td>{data.name}</td>
-                              <td>{data.phone} </td>
-                              <td>{data.email}</td>
-                              <td>
-                                {data.kyc == "not uploaded" ? (
-                                  <span className="badge bg-dark">
-                                    Kyc Not Updated
-                                  </span>
-                                ) : (
-                                  <>
-                                    {data.kycStatus == "approved" ? (
-                                      <>
-                                        <span className="badge bg-success ">
-                                          {data.kycStatus}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <></>
-                                    )}
-
-                                    {data.kycStatus == "pending" ? (
-                                      <>
-                                        <span className="badge bg-warning ">
-                                          {data.kycStatus}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      ""
-                                    )}
-
-                                    {data.kycStatus == "rejected" ? (
-                                      <>
-                                        <span className="badge bg-danger ">
-                                          {data.kycStatus}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      ""
-                                    )}
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </div>
-                  </CardBody>
-                </Card>
-              </div>
             </Col>
           </Row>
         </Container>
