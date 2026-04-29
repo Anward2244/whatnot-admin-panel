@@ -122,6 +122,15 @@ const Notifications = () => {
     if (/@all\b/i.test(title)) {
       return title.replace(/@all\b/gi, name)
     }
+
+    // Escape the name to safely use it in the exact match regex
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const exactMentionRegex = new RegExp(`@${escapedName}`, "gi")
+    if (exactMentionRegex.test(title)) {
+      return title.replace(exactMentionRegex, name)
+    }
+
+    // Fallback for partial manual mentions without spaces (e.g. "@Kuppili")
     return title.replace(/@\S+/g, name)
   }
 

@@ -203,8 +203,7 @@ const Dashboard = () => {
                 <div><b>Phone:</b> ${data.phone || "-"}</div>
                 <div style="margin-top: 4px;"><b>Status:</b> <span class="badge bg-${statusColor}">${data.kycStatus || data.kyc}</span></div>
                 <div style="margin-top: 8px; font-weight: bold; color: #556ee6;">
-                  ${selectedMetric === "sales" ? "Completed Sales" : selectedMetric === "pending" ? "Pending Sales" : "Rejected Sales"}: ${series[seriesIndex]}<br/>
-                  Total Value: ${totalValue}
+                    ${selectedMetric === "sales" ? "Completed Incentives" : selectedMetric === "pending" ? "Pending Incentives" : "Rejected Incentives"}: ₹${series[seriesIndex]}
                 </div>
               </div>
             </div>
@@ -463,7 +462,7 @@ const Dashboard = () => {
                                 href="#"
                                 onClick={(e) => { e.preventDefault(); setSelectedMetric("sales"); }}
                               >
-                                Completed Sales
+                                Completed Incentives
                               </a>
                             </li>
                             <li className="nav-item">
@@ -472,7 +471,7 @@ const Dashboard = () => {
                                 href="#"
                                 onClick={(e) => { e.preventDefault(); setSelectedMetric("pending"); }}
                               >
-                                Pending Sales
+                                Pending Incentives
                               </a>
                             </li>
                             <li className="nav-item">
@@ -481,7 +480,7 @@ const Dashboard = () => {
                                 href="#"
                                 onClick={(e) => { e.preventDefault(); setSelectedMetric("rejected"); }}
                               >
-                                Rejected Sales
+                                Rejected Incentives
                               </a>
                             </li>
                           </ul>
