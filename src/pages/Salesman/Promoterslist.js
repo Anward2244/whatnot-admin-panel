@@ -295,6 +295,7 @@ function Ventures() {
                               <th>Employee Name</th>
                               <th>Employee Number</th>
                               <th>Employee Email</th>
+                              <th>Registered Date</th>
                               <th>Status</th>
                               <th>Reject Reason</th>
                               <th>Action</th>
@@ -316,6 +317,9 @@ function Ventures() {
                                 <td>{data.name}</td>
                                 <td>{data.phone}</td>
                                 <td>{data.email}</td>
+                                <td>
+                                  {data.logCreatedDate ? new Date(data.logCreatedDate).toLocaleDateString() : (data.date || (data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "-"))}
+                                </td>
                                 <td>
                                   {data.kyc == "not uploaded" ? (
                                     <span className="badge bg-dark">

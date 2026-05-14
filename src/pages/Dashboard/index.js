@@ -135,26 +135,42 @@ const Dashboard = () => {
   }
 
   // Filter promoters who actually have data for the selected metric
-  const filteredPromoters = allPromoters.filter(data => getMetricValue(data, selectedMetric) > 0);
+  const filteredPromoters = allPromoters
+    .filter(data => getMetricValue(data, selectedMetric) > 0)
+    .sort((a, b) => getMetricValue(b, selectedMetric) - getMetricValue(a, selectedMetric)); // Sort by highest
 
   // Store Sales Chart Options mapping dynamically from filteredPromoters
-  const storeSalesSeries = filteredPromoters.length > 0 
-    ? filteredPromoters.map(data => getMetricValue(data, selectedMetric)) 
-    : []
+  const storeSalesSeries = [{
+    name: "Sales",
+    data: filteredPromoters.length > 0 
+      ? filteredPromoters.map(data => getMetricValue(data, selectedMetric)) 
+      : []
+  }]
     
   const storeSalesOptions = {
     chart: {
-      type: "donut",
+      type: "bar",
+      toolbar: {
+        show: false
+      }
+    },
+    plotOptions: {
+      bar: {
+        distributed: true,
+        borderRadius: 4,
+        horizontal: true,
+      }
     },
     colors: filteredPromoters.length > 0 ? generateColors(filteredPromoters.length) : [],
-    labels: filteredPromoters.length > 0 
-      ? filteredPromoters.map(data => data.name || data.storeName || "Unknown") 
-      : [],
+    xaxis: {
+      categories: filteredPromoters.length > 0 
+        ? filteredPromoters.map(data => data.name || data.storeName || "Unknown") 
+        : [],
+    },
     dataLabels: {
       enabled: true,
       formatter: function (val, opts) {
-        const count = opts.w.config.series[opts.seriesIndex];
-        const data = filteredPromoters[opts.seriesIndex];
+        const data = filteredPromoters[opts.dataPointIndex];
         
         let statusFilter = "approved";
         if (selectedMetric === "pending") statusFilter = "pending";
@@ -167,17 +183,15 @@ const Dashboard = () => {
         
         const totalValue = promoterSales.reduce((acc, curr) => acc + (Number(curr.sellingPrice) || Number(curr.price) || 0), 0);
 
-        return [count + " Sales", "₹" + totalValue];
+        return [val + " Sales", "₹" + totalValue];
       },
     },
     legend: {
-      position: "right",
-      horizontalAlign: "center",
-      floating: false,
+      show: false
     },
     tooltip: {
-      custom: function ({ series, seriesIndex, w }) {
-        const data = filteredPromoters[seriesIndex]
+      custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+        const data = filteredPromoters[dataPointIndex]
         if (data) {
           const statusColor = data.kycStatus === "approved" ? "success" : data.kycStatus === "pending" ? "warning" : "danger"
           
@@ -203,7 +217,10 @@ const Dashboard = () => {
                 <div><b>Phone:</b> ${data.phone || "-"}</div>
                 <div style="margin-top: 4px;"><b>Status:</b> <span class="badge bg-${statusColor}">${data.kycStatus || data.kyc}</span></div>
                 <div style="margin-top: 8px; font-weight: bold; color: #556ee6;">
-                    ${selectedMetric === "sales" ? "Completed Incentives" : selectedMetric === "pending" ? "Pending Incentives" : "Rejected Incentives"}: ₹${series[seriesIndex]}
+                    ${selectedMetric === "sales" ? "Completed Incentives" : selectedMetric === "pending" ? "Pending Incentives" : "Rejected Incentives"}: ₹${totalValue}
+                </div>
+                <div style="margin-top: 2px; font-weight: bold; color: #34c38f;">
+                    Total Sales: ${series[seriesIndex][dataPointIndex]}
                 </div>
               </div>
             </div>
@@ -215,7 +232,10 @@ const Dashboard = () => {
   }
 
   // Check if we have actual data to display
-  const hasDonutData = storeSalesSeries.length > 0;
+  const hasBarData = storeSalesSeries[0].data.length > 0;
+
+  // Calculate dynamic height based on number of items to prevent squishing with large data
+  const dynamicChartHeight = Math.max(350, filteredPromoters.length * 40 + 80);
 
   // Calculate promoter sales for the selected month and year
   const monthlyPromoterSales = allPromoters.map(promoter => {
@@ -251,6 +271,8 @@ const Dashboard = () => {
       const dateB = new Date(b.logCreateDate || b.createdAt || b.created_at || b.date || 0).getTime();
       return dateB - dateA;
     });
+
+    console.log(Promoters)
 
   return (
     <React.Fragment>
@@ -487,12 +509,12 @@ const Dashboard = () => {
                         </div>
                       </div>
                       
-                      {hasDonutData ? (
+                      {hasBarData ? (
                         <ReactApexChart
                           options={storeSalesOptions}
                           series={storeSalesSeries}
-                          type="donut"
-                          height={350}
+                          type="bar"
+                          height={dynamicChartHeight}
                         />
                       ) : (
                         <div className="text-center text-muted mt-4 mb-4 py-5">
