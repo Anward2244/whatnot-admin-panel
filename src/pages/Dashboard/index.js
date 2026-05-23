@@ -159,6 +159,7 @@ const Dashboard = () => {
         distributed: true,
         borderRadius: 4,
         horizontal: true,
+        barHeight: '75px',
       }
     },
     colors: filteredPromoters.length > 0 ? generateColors(filteredPromoters.length) : [],
@@ -235,7 +236,7 @@ const Dashboard = () => {
   const hasBarData = storeSalesSeries[0].data.length > 0;
 
   // Calculate dynamic height based on number of items to prevent squishing with large data
-  const dynamicChartHeight = Math.max(350, filteredPromoters.length * 40 + 80);
+  const dynamicChartHeight = Math.max(350, filteredPromoters.length * 60 + 80);
 
   // Calculate promoter sales for the selected month and year
   const monthlyPromoterSales = allPromoters.map(promoter => {

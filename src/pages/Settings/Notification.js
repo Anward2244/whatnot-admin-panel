@@ -414,6 +414,7 @@ const Notifications = () => {
   var gets = localStorage.getItem("authUser")
   var data = JSON.parse(gets)
 
+  // console.log(lists)
   return (
     <React.Fragment>
       <div className="page-content">
@@ -557,6 +558,7 @@ const Notifications = () => {
                             <tr>
                               <th>Sl.No</th>
                               <th>Date/Time</th>
+                              <th>Promoter Name</th>
                               <th>Title</th>
                               <th>Description</th>
                               <th>Action</th>
@@ -570,6 +572,9 @@ const Notifications = () => {
                                 </th>
                                 <td>
                                   {data.date} / {data.time}
+                                </td>
+                                <td>
+                                  {data.username || data.promoterName || data.promoter || "-"}
                                 </td>
                                 <td>{data.title}</td>
                                 <td>{data.description}</td>

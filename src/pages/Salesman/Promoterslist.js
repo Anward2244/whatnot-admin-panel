@@ -53,7 +53,12 @@ function Ventures() {
         }
       )
       .then(res => {
-        setActin(res.data.data)
+        const sortedData = res.data.data.sort((a, b) => {
+          const dateA = new Date(a.logCreatedDate || a.createdAt || a.date || 0).getTime()
+          const dateB = new Date(b.logCreatedDate || b.createdAt || b.date || 0).getTime()
+          return dateB - dateA
+        })
+        setActin(sortedData)
         setIsLoading(false)
       })
   }
@@ -93,7 +98,12 @@ function Ventures() {
       .then(
         res => {
           if (res.status === 200) {
-            setActin(res.data.data)
+            const sortedData = res.data.data.sort((a, b) => {
+              const dateA = new Date(a.logCreatedDate || a.createdAt || a.date || 0).getTime()
+              const dateB = new Date(b.logCreatedDate || b.createdAt || b.date || 0).getTime()
+              return dateB - dateA
+            })
+            setActin(sortedData)
           }
         },
         error => {
