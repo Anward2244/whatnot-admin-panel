@@ -63,8 +63,17 @@ const Notifications = () => {
     if (mention !== null) {
       const normalized = mention.toLowerCase()
       if (normalized === "all") {
-        setform(prev => ({ ...prev, title: value, userList: "All" }))
-        setselectedMulti([])
+        setform(prev => ({ ...prev, title: value, userList: prev.userList === "SELECTED_EMPLOYEES" ? "SELECTED_EMPLOYEES" : "All" }))
+        if (form.userList !== "SELECTED_EMPLOYEES") {
+          setselectedMulti([])
+        }
+        setTitleSuggestions([])
+        setShowTitleSuggestions(false)
+        return
+      }
+
+      if (normalized === "selected") {
+        setform(prev => ({ ...prev, title: value, userList: "SELECTED_EMPLOYEES" }))
         setTitleSuggestions([])
         setShowTitleSuggestions(false)
         return
@@ -119,8 +128,8 @@ const Notifications = () => {
 
   const personalizeTitleForUser = (title, name) => {
     if (!name) return title
-    if (/@all\b/i.test(title)) {
-      return title.replace(/@all\b/gi, name)
+    if (/@(?:all|selected)\b/i.test(title)) {
+      return title.replace(/@(?:all|selected)\b/gi, name)
     }
 
     // Escape the name to safely use it in the exact match regex
@@ -199,13 +208,15 @@ const Notifications = () => {
     const description = form.description
 
     if (form.userList === "All") {
+      const approvedCustomers = customer.filter(c => c.kycStatus === "approved")
+
       if (/@all\b/i.test(title)) {
-        if (!customer || customer.length === 0) {
-          toast("No employees available to send notifications.")
+        if (!approvedCustomers || approvedCustomers.length === 0) {
+          toast("No approved employees available to send notifications.")
           return
         }
 
-        const requests = customer.map(user => {
+        const requests = approvedCustomers.map(user => {
           const personalizedTitle = personalizeTitleForUser(title, user.name)
           const userOption = [{ value: user._id, label: user.name }]
           return axios.post(
@@ -223,7 +234,7 @@ const Notifications = () => {
 
         Promise.all(requests)
           .then(() => {
-            toast("Notification sent to all employees.")
+            toast("Notification sent to all approved employees.")
             setIsLoading(true)
             getNotifications()
             clearForm()
@@ -234,15 +245,25 @@ const Notifications = () => {
             if (error.response && error.response.status === 400) {
               toast(error.response.data.message)
             } else {
-              toast("Failed to send notifications to all employees.")
+              toast("Failed to send notifications to all approved employees.")
             }
           })
         return
       }
 
+      const allApprovedUsers = approvedCustomers.map(user => ({
+        value: user._id,
+        label: user.name,
+      }))
+
+      if (!allApprovedUsers || allApprovedUsers.length === 0) {
+        toast("No approved employees available to send notifications.")
+        return
+      }
+
       const dataArray = {
         title,
-        userList: "All",
+        userList: allApprovedUsers,
         description,
       }
 
@@ -401,12 +422,30 @@ const Notifications = () => {
     setTitleSuggestions([])
   }
 
+  const [form1, setform1] = useState({ search: "" })
+
+  const Search = e => {
+    setform1({ ...form1, [e.target.name]: e.target.value })
+    setPageNumber(0)
+  }
+
+  const filteredNoti = Noti.filter(data => {
+    const searchString = form1.search ? form1.search.toLowerCase() : ""
+    return (
+      (data.title && data.title.toLowerCase().includes(searchString)) ||
+      (data.description && data.description.toLowerCase().includes(searchString)) ||
+      (data.username && data.username.toLowerCase().includes(searchString)) ||
+      (data.promoterName && data.promoterName.toLowerCase().includes(searchString)) ||
+      (data.promoter && data.promoter.toLowerCase().includes(searchString))
+    )
+  })
+
   const [listPerPage] = useState(5)
   const [pageNumber, setPageNumber] = useState(0)
 
   const pagesVisited = pageNumber * listPerPage
-  const lists = Noti.slice(pagesVisited, pagesVisited + listPerPage)
-  const pageCount = Math.ceil(Noti.length / listPerPage)
+  const lists = filteredNoti.slice(pagesVisited, pagesVisited + listPerPage)
+  const pageCount = Math.ceil(filteredNoti.length / listPerPage)
   const changePage = ({ selected }) => {
     setPageNumber(selected)
   }
@@ -443,6 +482,9 @@ const Notifications = () => {
                         type="text"
                         placeholder="Enter Title"
                       />
+                      <small className="text-muted mt-1 d-block">
+                        Tip: Use @all, @selected, or @name to personalize the title.
+                      </small>
                       {showTitleSuggestions && (
                         <div
                           className="border bg-white shadow-sm"
@@ -551,6 +593,19 @@ const Notifications = () => {
                 ) : (
                   <>
                     <CardBody>
+                      <Row>
+                        <Col>
+                          <div style={{ float: "right" }}>
+                            <Input
+                              name="search"
+                              value={form1.search}
+                              onChange={Search}
+                              type="search"
+                              placeholder="Search..."
+                            />
+                          </div>
+                        </Col>
+                      </Row>
                       <h5> Notification List</h5>
                       <div className="table-rep-plugin mt-4 table-responsive">
                         <Table hover bordered responsive>
