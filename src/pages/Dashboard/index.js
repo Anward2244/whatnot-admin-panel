@@ -313,7 +313,7 @@ const Dashboard = () => {
 
               <Row>
                 <Col md="4">
-                  <Card className="overflow-hidden">
+                  <Card className="overflow-hidden shadow-sm">
                     <CardBody>
                       <h4 className="card-title mb-4">Monthly Sales</h4>
                       <ReactApexChart
@@ -326,7 +326,7 @@ const Dashboard = () => {
                   </Card>
                 </Col>
                 <Col md="8">
-                  <Card className="overflow-hidden">
+                  <Card className="overflow-hidden shadow-sm">
                     <CardBody>
                       <div className="d-flex justify-content-between align-items-center mb-4">
                         <h4 className="card-title mb-0">Monthly Sales Details</h4>
@@ -390,7 +390,7 @@ const Dashboard = () => {
 
               <Row>
                 <Col md="4">
-                  <Card className="overflow-hidden">
+                  <Card className="overflow-hidden shadow-sm">
                     <CardBody>
                       <h4 className="card-title mb-4">Monthly Employees</h4>
                       <ReactApexChart
@@ -403,7 +403,7 @@ const Dashboard = () => {
                   </Card>
                 </Col>
                 <Col md="8">
-                  <Card className="overflow-hidden">
+                  <Card className="overflow-hidden shadow-sm">
                     <CardBody>
                       <div className="d-flex justify-content-between align-items-center mb-4">
                         <h4 className="card-title mb-0">Latest Employees</h4>
@@ -473,7 +473,7 @@ const Dashboard = () => {
 
               <Row>
                 <Col md="12">
-                  <Card>
+                  <Card className="shadow-sm">
                     <CardBody>
                       <div className="d-sm-flex flex-wrap mb-4">
                         <h4 className="card-title">Promoter Information</h4>
@@ -510,18 +510,20 @@ const Dashboard = () => {
                         </div>
                       </div>
                       
-                      {hasBarData ? (
-                        <ReactApexChart
-                          options={storeSalesOptions}
-                          series={storeSalesSeries}
-                          type="bar"
-                          height={dynamicChartHeight}
-                        />
-                      ) : (
-                        <div className="text-center text-muted mt-4 mb-4 py-5">
-                          <p>No data available for the selected metric.</p>
-                        </div>
-                      )}
+                      <div style={{ height: "400px", overflowY: "auto", overflowX: "hidden" }}>
+                        {hasBarData ? (
+                          <ReactApexChart
+                            options={storeSalesOptions}
+                            series={storeSalesSeries}
+                            type="bar"
+                            height={dynamicChartHeight}
+                          />
+                        ) : (
+                          <div className="text-center text-muted mt-4 mb-4 py-5">
+                            <p>No data available for the selected metric.</p>
+                          </div>
+                        )}
+                      </div>
                     </CardBody>
                   </Card>
                 </Col>

@@ -1,5 +1,5 @@
 const Url = "http://213.210.36.19:5047/"
-
+// const Url = "http://192.168.0.6:5047/"
 export const URLS = {
   Base: Url,
 
@@ -59,9 +59,11 @@ export const URLS = {
   GetAllPromoters: Url + "getAllPromoters",
   GetPromotersearch: Url + "getAllPromoters?searchQuery=",
   GetOnePromoters: Url + "promoters/getPromoterById",
+  GetKycByPromoterId: Url + "getKycByPromoterId",
   UpdateKyc: Url + "approveKycByPromoterId",
   RejectKyc: Url + "rejectKyc",
   PromotersChangepassword: Url + "changePromoterpasswordByAdmin",
+  AdminUploadKycImages: Url + "adminUploadKycImages",
 
   GetAllPromoterReRequest: Url + "getAllKyc_reverification_requests",
   GetAllPromoterReRequestSearch:

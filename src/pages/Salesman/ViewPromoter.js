@@ -44,6 +44,8 @@ function State() {
 
   const [forms, setforms] = useState([])
 
+  const [kycData, setKycData] = useState(null)
+
   const [book, setbook] = useState([])
 
   const [book1, setbook1] = useState([])
@@ -56,6 +58,7 @@ function State() {
 
   useEffect(() => {
     GetOnePromoter()
+    getKycDetails()
   }, [])
 
   var gets = localStorage.getItem("authUser")
@@ -84,8 +87,27 @@ function State() {
         setIsLoading(false)
       })
   }
+  // console.log(forms)
+  const getKycDetails = () => {
+    const data = {
+      promoterId: Actinid,
+    }
 
-  console.log(forms)
+    var token = datas
+    axios
+      .post(URLS.GetKycByPromoterId, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(res => {
+        if (res.data && res.data.data) {
+          setKycData(res.data.data)
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch KYC details", err)
+        setKycData(null)
+      })
+  }
 
   const [listPerPage] = useState(5)
   const [pageNumber, setPageNumber] = useState(0)
@@ -106,7 +128,6 @@ function State() {
   const changePage1 = ({ selected }) => {
     setPageNumber1(selected)
   }
-
   
   const [listPerPage2] = useState(5)
   const [pageNumber2, setPageNumber2] = useState(0)
@@ -118,10 +139,11 @@ function State() {
     setPageNumber2(selected)
   }
 
-  
-  const video = URLS.Base + forms.kyc
-
   const [modal_small2, setmodal_small2] = useState(false)
+  const [modal_kyc, setmodal_kyc] = useState(false)
+  const [aadhaarFile, setAadhaarFile] = useState(null)
+  const [panFile, setPanFile] = useState(null)
+  const [driveUrl, setDriveUrl] = useState("")
 
   const handleChange = e => {
     const myUser = { ...targets }
@@ -131,6 +153,66 @@ function State() {
 
   function tog_small2() {
     setmodal_small2(!modal_small2)
+  }
+
+  const toggleKycModal = () => {
+    setmodal_kyc(!modal_kyc)
+  }
+
+  const handleAadhaarChange = e => {
+    setAadhaarFile(e.target.files[0])
+  }
+
+  const handlePanChange = e => {
+    setPanFile(e.target.files[0])
+  }
+
+  const handleKycUpload = e => {
+    e.preventDefault()
+    if (!aadhaarFile && !panFile && !driveUrl) {
+      toast("Please select at least one image or provide a Drive link.")
+      return
+    }
+
+    const token = datas
+    const formData = new FormData()
+    formData.append("promoterId", forms._id)
+    if (aadhaarFile) {
+      formData.append("aadhaarImage", aadhaarFile)
+    }
+    if (panFile) {
+      formData.append("panImage", panFile)
+    }
+    if (driveUrl) {
+      formData.append("driveUrl", driveUrl)
+    }
+
+    axios
+      .post(URLS.AdminUploadKycImages, formData, {
+        headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data" 
+        },
+      })
+      .then(
+        res => {
+          if (res.status === 200) {
+            toast(res.data.message)
+            setmodal_kyc(false)
+            setAadhaarFile(null)
+            setPanFile(null)
+            setDriveUrl("")
+            getKycDetails()
+          }
+        },
+        error => {
+          if (error.response && error.response.status === 400) {
+            toast(error.response.data.message)
+          } else {
+            toast("Failed to upload KYC images.")
+          }
+        }
+      )
   }
 
   const handleSubmit1 = e => {
@@ -256,6 +338,8 @@ function State() {
       )
   }
 
+  // console.log(kycData)
+  
   return (
     <React.Fragment>
       <div className="page-content">
@@ -275,7 +359,7 @@ function State() {
           </Row>
           <Row className="mb-5">
             <Col md={12}>
-              <Card>
+              <Card className="shadow-sm">
                 {isLoading == true ? (
                   <>
                     <div
@@ -314,7 +398,7 @@ function State() {
                               toggle1("7")
                             }}
                           >
-                            Video Kyc
+                            KYC
                           </NavLink>
                         </NavItem>
 
@@ -383,251 +467,183 @@ function State() {
                         className="p-4  text-muted"
                       >
                         <TabPane tabId="5">
-                          <h5 className="mb-3">Profile Details : </h5>
                           <Row>
-                            <Col lg={4}>
-                              <ul className="list-unstyled vstack gap-3 mb-0 mt-2">
+                            <Col md={12}>
+                              <div className="d-flex align-items-center mb-4">
                                 <img
                                   src={URLS.Base + forms.profilePic}
-                                  height="150px"
-                                  width="150px"
-                                  alt=""
-                                  className="rounded-circle"
-                                ></img>
-
-                                <li className="mt-4">
-                                  <div className="d-flex ">
-                                    <i className="bx bxs-buildings font-size-18 text-primary"></i>
-                                    <div className="ms-3">
-                                      <h6 className="mb-1 fw-semibold">
-                                        Name:
-                                      </h6>
-                                      <span className="text-muted">
-                                        {forms.name}
-                                      </span>
-                                    </div>
+                                  alt="Profile"
+                                  className="rounded-circle avatar-xl img-thumbnail"
+                                  style={{ width: "120px", height: "120px", objectFit: "cover" }}
+                                />
+                                <div className="ms-4">
+                                  <h4 className="mb-1">{forms.name}</h4>
+                                  <p className="text-muted mb-1">{forms.email} | {forms.phone}</p>
+                                  <div>
+                                    {forms.kycVerified ? (
+                                      <span className="badge bg-success font-size-12">KYC Verified</span>
+                                    ) : (
+                                      <span className="badge bg-danger font-size-12">KYC Not Verified</span>
+                                    )}
                                   </div>
-                                </li>
+                                </div>
+                              </div>
+                            </Col>
+                          </Row>
 
-                                <li>
-                                  <div className="d-flex mt-3">
-                                    <i className="bx bx-user font-size-18 text-primary"></i>
-                                    <div className="ms-3">
-                                      <h6 className="mb-1 fw-semibold">
-                                        Gender:
-                                      </h6>
-                                      <span className="text-muted">
-                                        {forms.gender}
-                                      </span>
-                                    </div>
+                          <Row>
+                            <Col lg={6}>
+                              <Card className="border shadow-none mb-4">
+                                <CardBody>
+                                  <h5 className="font-size-15 mb-3 border-bottom pb-2">Personal Information</h5>
+                                  <div className="table-responsive">
+                                    <Table className="table-nowrap mb-0">
+                                      <tbody>
+                                        <tr>
+                                          <th scope="row" style={{ width: "40%" }}>Gender :</th>
+                                          <td>{forms.gender || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Age :</th>
+                                          <td>{forms.age || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">KYC Uploaded Date :</th>
+                                          <td>{forms.kycUploadedDate ? new Date(forms.kycUploadedDate).toLocaleDateString() : "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Registered Date :</th>
+                                          <td>{forms.logCreatedDate ? new Date(forms.logCreatedDate).toLocaleString() : (forms.createdAt ? new Date(forms.createdAt).toLocaleString() : "-")}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Last Updated :</th>
+                                          <td>{forms.logModifiedDate ? new Date(forms.logModifiedDate).toLocaleString() : "-"}</td>
+                                        </tr>
+                                      </tbody>
+                                    </Table>
                                   </div>
-                                </li>
-
-                                <li>
-                                  <div className="d-flex mt-3">
-                                    <i className="bx bx-bar-chart-square font-size-18 text-primary"></i>
-                                    <div className="ms-3">
-                                      <h6 className="mb-1 fw-semibold">Age:</h6>
-                                      <span className="text-muted">
-                                        {forms.age}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </li>
-
-                                <li>
-                                  <div className="d-flex  mt-3">
-                                    <i className="bx bx-phone font-size-18 text-primary"></i>
-                                    <div className="ms-3">
-                                      <h6 className="mb-1 fw-semibold">
-                                        Contact Number:
-                                      </h6>
-                                      {forms.phone}
-                                    </div>
-                                  </div>
-                                </li>
-
-                                <li>
-                                  <div className="d-flex  mt-3">
-                                    <i className="bx bx-message font-size-18 text-primary"></i>
-                                    <div className="ms-3">
-                                      <h6 className="mb-1 fw-semibold">
-                                        Email:
-                                      </h6>
-                                      {forms.email}
-                                    </div>
-                                  </div>
-                                </li>
-
-                                <li>
-                                  <div className="d-flex  mt-3">
-                                    <i className="bx bx-bookmark font-size-18 text-primary"></i>
-                                    <div className="ms-3">
-                                      <h6 className="mb-1 fw-semibold">
-                                        Status :
-                                      </h6>
-                                      <span className="text-muted">
-                                        {forms.kycVerified == true ? (
-                                          <>kYC Verified</>
-                                        ) : (
-                                          <>kYC Not Verified</>
-                                        )}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </li>
-                              </ul>
+                                </CardBody>
+                              </Card>
                             </Col>
 
-                            <Col lg={8}>
-                              <Row>
-                                <Col>
-                                  <ul className="verti-timeline list-unstyled">
-                                    <li className="event-list  mt-2">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 ">
-                                              Bank Name
-                                            </h6>
-                                            <p className="text-muted">
-                                              {forms.bankName}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-
-                                    <li className="event-list">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 ">
-                                              Account Holder Name
-                                            </h6>
-                                            <p className="text-muted">
-                                              {forms.accountHolderName}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-
-                                    <li className="event-list">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 ">
-                                              Account Number
-                                            </h6>
-                                            <p className="text-muted">
-                                              {forms.accountNumber}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-
-                                    <li className="event-list">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 ">
-                                              Branch
-                                            </h6>
-                                            <p className="text-muted">
-                                              {forms.branchName}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-
-                                    <li className="event-list">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 ">
-                                              IFSC code
-                                            </h6>
-                                            <p className="text-muted">
-                                              {forms.IFSC}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-
-                                    <li className="event-list">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 mb-1">
-                                              Monthly Target
-                                            </h6>
-                                            <p className="text-muted">
-                                              {targets.monthTarget}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-
-                                    <li className="event-list">
-                                      <div className="event-timeline-dot">
-                                        <i className="bx bx-right-arrow-circle"></i>
-                                      </div>
-                                      <div className="d-flex">
-                                        <div className="flex-grow-1">
-                                          <div>
-                                            <h6 className="font-size-14 mb-1">
-                                              Wallet
-                                            </h6>
-                                            <p className="text-muted">
-                                              {forms.wallet}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-                                  </ul>
-                                </Col>
-                              </Row>
+                            <Col lg={6}>
+                              <Card className="border shadow-none mb-4">
+                                <CardBody>
+                                  <h5 className="font-size-15 mb-3 border-bottom pb-2">Banking & Targets</h5>
+                                  <div className="table-responsive">
+                                    <Table className="table-nowrap mb-0">
+                                      <tbody>
+                                        <tr>
+                                          <th scope="row" style={{ width: "40%" }}>Bank Name :</th>
+                                          <td>{forms.bankName || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Account Holder :</th>
+                                          <td>{forms.accountHolderName || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Account Number :</th>
+                                          <td>{forms.accountNumber || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Branch :</th>
+                                          <td>{forms.branchName || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">IFSC Code :</th>
+                                          <td>{forms.IFSC || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Monthly Target :</th>
+                                          <td>{targets.monthTarget || "-"}</td>
+                                        </tr>
+                                        <tr>
+                                          <th scope="row">Wallet Balance :</th>
+                                          <td>{forms.wallet || "0"}</td>
+                                        </tr>
+                                      </tbody>
+                                    </Table>
+                                  </div>
+                                </CardBody>
+                              </Card>
                             </Col>
                           </Row>
                         </TabPane>
                         <TabPane tabId="7">
-                          <h5 className="mb-3">Video Kyc: </h5>
-                          <Row className="d-flex justify-content-center">
-                            <Col md={8}>
-                              <iframe
-                                src={video}
-                                width="90%"
-                                height="400px"
-                                frameBorder="0"
-                                allow="encrypted-media"
-                                allowFullScreen
-                              ></iframe>
+                          <Row className="mb-3">
+                            <Col md={6}>
+                              <h5 className="mb-3">KYC Details: </h5>
+                            </Col>
+                            <Col md={6}>
+                              <Button
+                                onClick={toggleKycModal}
+                                size="md"
+                                className="m-1"
+                                color="primary"
+                                style={{ float: "right" }}
+                              >
+                                Upload KYC Images
+                              </Button>
                             </Col>
                           </Row>
+                          {kycData ? (
+                            <Row>
+                              <Col md={6} className="text-center mb-3">
+                                <h6 className="mb-3">Aadhaar Card</h6>
+                                {kycData.aadhaarImage ? (
+                                  <img
+                                    src={URLS.Base + kycData.aadhaarImage}
+                                    alt="Aadhaar Card"
+                                    style={{
+                                      width: "100%",
+                                      maxWidth: "400px",
+                                      border: "1px solid #ddd",
+                                      borderRadius: "4px",
+                                      padding: "5px",
+                                    }}
+                                  />
+                                ) : (
+                                  <p>Aadhaar image not available.</p>
+                                )}
+                              </Col>
+                              <Col md={6} className="text-center mb-3">
+                                <h6 className="mb-3">PAN Card</h6>
+                                {kycData.panImage ? (
+                                  <img
+                                    src={URLS.Base + kycData.panImage}
+                                    alt="PAN Card"
+                                    style={{
+                                      width: "100%",
+                                      maxWidth: "400px",
+                                      border: "1px solid #ddd",
+                                      borderRadius: "4px",
+                                      padding: "5px",
+                                    }}
+                                  />
+                                ) : (
+                                  <p>PAN image not available.</p>
+                                )}
+                              </Col>
+                              {kycData.videoPath && kycData.videoPath !== "" && (
+                                <Col md={12} className="mt-4">
+                                  <h5 className="mb-3">Video Kyc: </h5>
+                                  <Row className="d-flex justify-content-center">
+                                    <Col md={8}>
+                                      <iframe src={URLS.Base + kycData.videoPath} width="90%" height="400px" frameBorder="0" allow="encrypted-media" allowFullScreen title="KYC Video" ></iframe>
+                                    </Col>
+                                  </Row>
+                                </Col>
+                              )}
+                              {kycData.driveUrl && kycData.driveUrl !== "" && (
+                                <Col md={12} className="mt-4">
+                                  <h5 className="mb-3">Drive Link: </h5>
+                                  <a href={kycData.driveUrl} target="_blank" rel="noopener noreferrer">
+                                    {kycData.driveUrl}
+                                  </a>
+                                </Col>
+                              )}
+                            </Row>
+                          ) : (<p className="text-center">No KYC details available.</p>)}
                         </TabPane>
                         <TabPane tabId="9">
                           <Row>
@@ -1057,6 +1073,80 @@ function State() {
                 Submit <i className="fas fa-check-circle"></i>
               </Button>
             </div>
+          </div>
+        </Modal>
+        <Modal
+          size="md"
+          isOpen={modal_kyc}
+          toggle={toggleKycModal}
+          centered
+        >
+          <div className="modal-header">
+            <h5 className="modal-title mt-0" id="kycModalLabel">
+              Upload KYC Images
+            </h5>
+            <button
+              onClick={() => {
+                setmodal_kyc(false)
+              }}
+              type="button"
+              className="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div className="modal-body">
+            <Form onSubmit={handleKycUpload}>
+              <Col md={12}>
+                <div className="mb-3">
+                  <Label>Aadhaar Card Image</Label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    accept="image/*"
+                    onChange={handleAadhaarChange}
+                  />
+                </div>
+              </Col>
+              <Col md={12}>
+                <div className="mb-3">
+                  <Label>PAN Card Image</Label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    accept="image/*"
+                    onChange={handlePanChange}
+                  />
+                </div>
+              </Col>
+              <Col md={12}>
+                <div className="text-center mb-3">
+                  <span className="text-muted fw-bold">OR</span>
+                </div>
+              </Col>
+              <Col md={12}>
+                <div className="mb-3">
+                  <Label>Drive Folder URL</Label>
+                  <input
+                    type="url"
+                    className="form-control"
+                    placeholder="Enter Drive folder link containing Aadhaar and PAN"
+                    value={driveUrl}
+                    onChange={e => setDriveUrl(e.target.value)}
+                  />
+                </div>
+              </Col>
+              <div style={{ float: "right" }}>
+                <Button onClick={() => setmodal_kyc(false)} color="danger" type="button">
+                  Cancel <i className="fas fa-times-circle"></i>
+                </Button>
+                <Button className="m-1" color="primary" type="submit">
+                  Submit <i className="fas fa-upload"></i>
+                </Button>
+              </div>
+            </Form>
           </div>
         </Modal>
         <Modal

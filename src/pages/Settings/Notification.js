@@ -9,6 +9,7 @@ import {
   Table,
   Label,
   Form,
+  Modal,
 } from "reactstrap"
 import Breadcrumbs from "../../components/Common/Breadcrumb"
 import axios from "axios"
@@ -33,6 +34,8 @@ const Notifications = () => {
 
   const [titleSuggestions, setTitleSuggestions] = useState([])
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false)
+
+  const [confirmModal, setConfirmModal] = useState(false)
 
   var gets = localStorage.getItem("authUser")
   var data = JSON.parse(gets)
@@ -400,7 +403,7 @@ const Notifications = () => {
   const handleSubmit = e => {
     e.preventDefault()
     if (form.userList === "All") {
-      addnotifi()
+      setConfirmModal(true)
       return
     }
 
@@ -409,7 +412,7 @@ const Notifications = () => {
       return
     }
 
-    addnotifi()
+    setConfirmModal(true)
   }
 
   const clearForm = () => {
@@ -462,7 +465,7 @@ const Notifications = () => {
 
           <Row>
             <Col md={4}>
-              <Card className="p-4">
+              <Card className="p-4 shadow-sm">
                 <h5>Add Notification</h5>
 
                 <Form
@@ -480,7 +483,7 @@ const Notifications = () => {
                         name="title"
                         required
                         type="text"
-                        placeholder="Enter Title"
+                        placeholder="Ex: hi, @all or @name !"
                       />
                       <small className="text-muted mt-1 d-block">
                         Tip: Use @all, @selected, or @name to personalize the title.
@@ -579,7 +582,7 @@ const Notifications = () => {
             </Col>
 
             <Col md={8}>
-              <Card>
+              <Card className="shadow-sm">
                 {isLoading == true ? (
                   <>
                     <div
@@ -593,25 +596,23 @@ const Notifications = () => {
                 ) : (
                   <>
                     <CardBody>
-                      <Row>
-                        <Col>
-                          <div style={{ float: "right" }}>
-                            <Input
-                              name="search"
-                              value={form1.search}
-                              onChange={Search}
-                              type="search"
-                              placeholder="Search..."
-                            />
-                          </div>
-                        </Col>
-                      </Row>
-                      <h5> Notification List</h5>
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h5 className="mb-0">Notification List</h5>
+                        <div style={{ width: "250px" }}>
+                          <Input
+                            name="search"
+                            value={form1.search}
+                            onChange={Search}
+                            type="search"
+                            placeholder="Search..."
+                          />
+                        </div>
+                      </div>
                       <div className="table-rep-plugin mt-4 table-responsive">
                         <Table hover bordered responsive>
                           <thead>
                             <tr>
-                              <th>Sl.No</th>
+                              <th>S.No</th>
                               <th>Date/Time</th>
                               <th>Promoter Name</th>
                               <th>Title</th>
@@ -675,6 +676,74 @@ const Notifications = () => {
             </Col>
           </Row>
         </div>
+        <Modal
+          size="md"
+          isOpen={confirmModal}
+          toggle={() => {
+            setConfirmModal(!confirmModal)
+          }}
+          centered
+        >
+          <div className="modal-header">
+            <h5 className="modal-title mt-0">Notification Preview</h5>
+            <button
+              onClick={() => {
+                setConfirmModal(false)
+              }}
+              type="button"
+              className="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="p-3 border rounded mb-3 bg-light shadow-sm">
+              <h5 className="font-size-15 mb-2 text-primary">
+                <i className="bx bx-bell me-2"></i>
+                {form.title || "Notification Title"}
+              </h5>
+              <p className="text-muted mb-0" style={{ whiteSpace: "pre-wrap" }}>
+                {form.description || "Notification description will appear here..."}
+              </p>
+            </div>
+            <div className="mb-4">
+              <strong>Target Audience: </strong>
+              <span className="text-muted">
+                {form.userList === "All"
+                  ? "All Employee's"
+                  : form.userList === "USER"
+                  ? "Single Employee"
+                  : "Selected Employees"}
+                {form.userList !== "All" && selectedMulti.length > 0 && (
+                  <span> - {selectedMulti.map(u => u.label).join(", ")}</span>
+                )}
+              </span>
+            </div>
+            <div style={{ float: "right" }}>
+              <Button
+                onClick={() => {
+                  setConfirmModal(false)
+                }}
+                color="danger"
+                type="button"
+              >
+                Cancel <i className="fas fa-times-circle"></i>
+              </Button>
+              <Button
+                className="m-1"
+                color="primary"
+                onClick={() => {
+                  setConfirmModal(false)
+                  addnotifi()
+                }}
+              >
+                Confirm & Send <i className="fas fa-paper-plane"></i>
+              </Button>
+            </div>
+          </div>
+        </Modal>
         <ToastContainer />
       </div>
     </React.Fragment>

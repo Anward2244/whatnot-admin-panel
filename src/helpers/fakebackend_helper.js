@@ -48,6 +48,7 @@ const postFakeRegister = data => {
 // Login Method
 const postFakeLogin = data =>
   post("http://213.210.36.19:5047/adminLogin", data)
+  // post("http://192.168.0.6:5047/adminLogin", data)
 
 // postForgetPwd
 const postFakeForgetPwd = data => post(url.POST_FAKE_PASSWORD_FORGET, data)

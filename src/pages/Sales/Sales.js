@@ -19,6 +19,7 @@ import { URLS } from "../../Url"
 import gig from "../../assets/images/what.gif"
 import mark from "../../assets/images/mark1.gif"
 import { saveAs } from "file-saver"
+import { CSVLink } from "react-csv"
 import Trash from "../../assets/images/trash.gif"
 
 function Ventures() {
@@ -188,6 +189,64 @@ function Ventures() {
       )
   }
 
+  const [exportModal, setExportModal] = useState(false)
+  const [exportDateRange, setExportDateRange] = useState({ startDate: '', endDate: '' })
+
+  const getExportData = () => {
+    let filteredData = Actin
+
+    if (exportDateRange.startDate && exportDateRange.endDate) {
+      const start = new Date(exportDateRange.startDate)
+      const end = new Date(exportDateRange.endDate)
+      end.setHours(23, 59, 59, 999)
+
+      filteredData = Actin.filter(item => {
+        const itemDate = new Date(item.saleDate)
+        return itemDate >= start && itemDate <= end
+      })
+    }
+
+    return [...filteredData].reverse().map(item => {
+      let row = {}
+      row["Promoter Name"] = item.promoter?.name || ""
+      row["Store Name"] = item.promoter?.storeName || ""
+      row["Brand Name"] = item.brandName || ""
+      row["Category Name"] = item.categoryName || ""
+      row["Product Name"] = item.productName || ""
+      row["Price"] = item.price || ""
+      row["Selling Price"] = item.sellingPrice || ""
+      row["Incentive"] = item.incentive || ""
+      row["Invoice"] = URLS.Base + item.invoicePath
+      return row
+    })
+  }
+
+  const handleExport = () => {
+    const data = getExportData()
+    if (data.length === 0) {
+      toast("No data to export for the selected date range")
+      return
+    }
+
+    const headers = Object.keys(data[0])
+    const csvContent = [
+      headers.join(","),
+      ...data.map(row => 
+        headers.map(fieldName => {
+          let val = row[fieldName] === null || row[fieldName] === undefined ? "" : String(row[fieldName]);
+          val = val.replace(/"/g, '""');
+          return `"${val}"`;
+        }).join(",")
+      )
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    saveAs(blob, "Sales_Export.csv")
+    setExportModal(false)
+  }
+
+  console.log(Actin)
+  
   return (
     <React.Fragment>
       <div className="page-content">
@@ -196,7 +255,10 @@ function Ventures() {
 
           <Row>
             <Col>
-              <Card>
+              <Card className="shadow-sm">
+                <div className="card-header bg-white border-bottom">
+                  <h4 className="card-title mb-0">Sales Management</h4>
+                </div>
                 {isLoading == true ? (
                   <>
                     <div
@@ -210,19 +272,25 @@ function Ventures() {
                 ) : (
                   <>
                     <CardBody>
-                      <div className="table-rep-plugin mt-4 table-responsive">
-                        <div style={{ float: "right" }}>
-                          <Input
-                            type="search"
-                            className="form-control mb-4"
-                            placeholder="Search.."
-                            value={search.search}
-                            onChange={searchAll}
-                            name="search"
-                          />
+                  <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 mt-2">
+                          <Button color="success" onClick={() => setExportModal(true)}>
+                            <i className="fas fa-file-export me-1"></i> Export Data
+                          </Button>
+                          <div className="input-group mt-2 mt-sm-0" style={{ width: "250px" }}>
+                            <span className="input-group-text bg-light border-end-0"><i className="bx bx-search-alt"></i></span>
+                            <Input
+                              type="search"
+                              className="form-control border-start-0"
+                              placeholder="Search.."
+                              value={search.search}
+                              onChange={searchAll}
+                              name="search"
+                            />
+                          </div>
                         </div>
-                        <Table hover className="table table-bordered mb-4">
-                          <thead>
+                    <div className="table-rep-plugin table-responsive mb-4" style={{ maxHeight: "500px", overflow: "auto" }}>
+                      <Table hover className="table table-bordered mb-0">
+                          <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 1 }}>
                             <tr className="text-center">
                               <th>SlNo</th>
                               <th>Date</th>
@@ -256,7 +324,7 @@ function Ventures() {
                                     src={URLS.Base + data.promoter.profilePic}
                                     alt=""
                                     className=" rounded-circle"
-                                    style={{ height: "50px", width: "50px" }}
+                                    style={{ height: "50px", width: "50px", objectFit: "cover" }}
                                   />
                                 </td>
                                 <td>{data.promoter.name}</td>
@@ -272,12 +340,18 @@ function Ventures() {
                                 <td>
                                   <Button
                                     outline
-                                    onClick={() => {
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      window.open(URLS.Base + data.invoicePath, "_blank")
+                                    }}
+                                    onContextMenu={(e) => {
+                                      e.preventDefault()
                                       downloadImage(data)
                                     }}
-                                    className="mb-1 m-1 "
-                                    style={{ float: "right" }}
-                                    color="danger"
+                                    className="m-1"
+                                    color="info"
+                                    title="Left-click to Open, Right-click to Download"
                                   >
                                     <i
                                       className="fas fa-cloud-download-alt"
@@ -298,7 +372,7 @@ function Ventures() {
                                         URLS.Base +
                                         data.priceMatchScreenshotPath
                                       }
-                                      height="100px"
+                                    style={{ height: "60px", width: "60px", objectFit: "cover", borderRadius: "8px" }}
                                     ></img>
                                   </a>
                                 </td>
@@ -368,10 +442,8 @@ function Ventures() {
                             ))}
                           </tbody>
                         </Table>
-                        <div
-                          className="d-flex mt-3 mb-1"
-                          style={{ float: "right" }}
-                        >
+                    </div>
+                    <div className="d-flex justify-content-end mt-3 mb-1">
                           <ReactPaginate
                             previousLabel={"Previous"}
                             nextLabel={"Next"}
@@ -385,7 +457,6 @@ function Ventures() {
                             total={lists.length}
                           />
                         </div>
-                      </div>
                     </CardBody>
                   </>
                 )}
@@ -417,10 +488,12 @@ function Ventures() {
                 <span aria-hidden="true">&times;</span>
               </button>
             </div>
-            <div className="modal-body">
-              <Col md={12}>
-                <img src={mark} width="100%"></img>
-              </Col>
+          <div className="modal-body pt-4">
+            <div className="text-center mb-4">
+              <img src={mark} alt="Approve" width="120px" />
+              <h5 className="mt-3">Approve Sale?</h5>
+              <p className="text-muted">Are you sure you want to approve this sale?</p>
+            </div>
 
               <div style={{ float: "right" }}>
                 <Button
@@ -475,9 +548,10 @@ function Ventures() {
                   handleSubmit(e)
                 }}
               >
-                <Col md={12}>
-                  <img src={Trash} width="100%"></img>
-                </Col>
+              <div className="text-center mb-4">
+                <img src={Trash} alt="Reject" width="120px" />
+                <h5 className="mt-3">Reject Sale</h5>
+              </div>
 
                 <Col md={12}>
                   <div className="mb-3">
@@ -515,6 +589,46 @@ function Ventures() {
                   </Button>
                 </div>
               </Form>
+            </div>
+          </Modal>
+
+          <Modal isOpen={exportModal} toggle={() => setExportModal(!exportModal)} centered>
+            <div className="modal-header">
+              <h5 className="modal-title">Export Sales Data</h5>
+              <button type="button" className="close" onClick={() => setExportModal(false)} aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <h6 className="mb-3">Date Range (Optional)</h6>
+              <Row>
+                <Col md={6}>
+                  <div className="mb-3">
+                    <Label>Start Date</Label>
+                    <Input 
+                      type="date" 
+                      value={exportDateRange.startDate} 
+                      onChange={e => setExportDateRange({...exportDateRange, startDate: e.target.value})} 
+                    />
+                  </div>
+                </Col>
+                <Col md={6}>
+                  <div className="mb-3">
+                    <Label>End Date</Label>
+                    <Input 
+                      type="date" 
+                      value={exportDateRange.endDate} 
+                      onChange={e => setExportDateRange({...exportDateRange, endDate: e.target.value})} 
+                    />
+                  </div>
+                </Col>
+              </Row>
+            </div>
+            <div className="modal-footer">
+              <Button color="secondary" onClick={() => setExportModal(false)}>Cancel</Button>
+              <Button color="success" onClick={handleExport}>
+                <i className="fas fa-file-excel me-1"></i> Download Excel
+              </Button>
             </div>
           </Modal>
           <ToastContainer />
